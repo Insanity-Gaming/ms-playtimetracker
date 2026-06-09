@@ -1,4 +1,5 @@
 using InsanityGaming.ModSharp.PlaytimeTracker.Shared;
+using InsanityGaming.PlaytimeTracker.Commands;
 using InsanityGaming.PlaytimeTracker.Data;
 using InsanityGaming.PlaytimeTracker.Interfaces;
 using InsanityGaming.PlaytimeTracker.Services;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Sharp.Extensions.CommandManager;
 using Sharp.Extensions.GameEventManager;
 using Sharp.Shared;
 using Sharp.Shared.Abstractions;
@@ -47,6 +49,7 @@ public sealed class PlaytimeTracker : IModSharpModule
         services.AddSingleton(sharedSystem.GetLoggerFactory());
         services.TryAdd(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
 
+        services.AddCommandManager(sharedSystem);
         services.AddGameEventManager();
 
         services.AddSingleton<Database>();
@@ -55,8 +58,10 @@ public sealed class PlaytimeTracker : IModSharpModule
         services.AddSingleton<ServerRegistry>();
         services.AddSingleton<SessionManager>();
         services.AddSingleton<PlaytimeTrackerService>();
+        services.AddSingleton<PlaytimeCommands>();
         services.AddSingleton<IPlaytimeTracker>(sp => sp.GetRequiredService<PlaytimeTrackerService>());
         services.AddSingleton<IModule>(sp => sp.GetRequiredService<SessionManager>());
+        services.AddSingleton<IModule>(sp => sp.GetRequiredService<PlaytimeCommands>());
 
         _serviceProvider = services.BuildServiceProvider();
     }
@@ -72,6 +77,8 @@ public sealed class PlaytimeTracker : IModSharpModule
 
         db.EnsureSchemaAsync().GetAwaiter().GetResult();
         registry.RegisterAsync().GetAwaiter().GetResult();
+
+        _bridge.CommandManager = _serviceProvider.GetRequiredService<ICommandManager>();
 
         _bridge.SharpModuleManager.RegisterSharpModuleInterface<IPlaytimeTracker>(
             this, IPlaytimeTracker.Identity, tracker);

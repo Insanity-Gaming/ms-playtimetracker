@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ModSharp.Sharp.Extensions.CommandManager" Version="2.1.120" ExcludeAssets="runtime" />
     <PackageReference Include="ModSharp.Sharp.Extensions.GameEventManager" Version="2.1.120" ExcludeAssets="runtime" />
     <PackageReference Include="ModSharp.Sharp.Shared" Version="2.1.123" PrivateAssets="all" ExcludeAssets="runtime" />
     <PackageReference Include="Dapper" Version="2.1.66" />

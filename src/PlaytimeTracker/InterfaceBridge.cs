@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Sharp.Extensions.CommandManager;
 using Sharp.Shared;
 using Sharp.Shared.Abstractions;
 using Sharp.Shared.Managers;
@@ -28,6 +29,7 @@ public sealed class InterfaceBridge
     public ILoggerFactory       LoggerFactory      { get; }
     public ISharedSystem        SharedSystem       { get; }
     public ISharpModuleManager  SharpModuleManager { get; }
+    public ICommandManager?     CommandManager     { get; set; }
 
     public InterfaceBridge(string dllPath, string sharpPath, Version version, ISharedSystem sharedSystem)
     {
