@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -46,6 +47,13 @@ jobs:
             module.zip
             nupkgs/*.nupkg
 
+      - name: NuGet Login
+        if: github.ref_name == 'master'
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Push to NuGet
         if: github.ref_name == 'master'
-        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" --skip-duplicate
