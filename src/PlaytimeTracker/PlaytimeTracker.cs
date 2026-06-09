@@ -35,7 +35,7 @@ public sealed class PlaytimeTracker : IModSharpModule
         bool hotReload)
     {
         var configuration = new ConfigurationBuilder()
-            .AddJsonFile(Path.Combine(dllPath, "appsettings.json"), false, false)
+            .AddJsonFile(Path.Combine(dllPath, "config.json"), false, false)
             .Build();
 
         var services = new ServiceCollection();

@@ -47,13 +47,22 @@ jobs:
             module.zip
             nupkgs/*.nupkg
 
+      - name: Check if Shared changed
+        id: shared_changed
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q '^src/PlaytimeTracker.Shared/'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: NuGet Login
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'master' && steps.shared_changed.outputs.changed == 'true'
         uses: NuGet/login@v1
         id: nuget_login
         with:
           user: ${{ secrets.NUGET_USER }}
 
       - name: Push to NuGet
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'master' && steps.shared_changed.outputs.changed == 'true'
         run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" --skip-duplicate

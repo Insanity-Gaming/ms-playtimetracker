@@ -13,6 +13,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Insanity-Gaming/ms-playtimetracker</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Insanity-Gaming/ms-playtimetracker</PackageProjectUrl>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
