@@ -1,0 +1,51 @@
+name: Build Plugin
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[no ci]')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore -p:Version=1.0.${{ github.run_number }} -p:AssemblyVersion=1.0.${{ github.run_number }} -p:FileVersion=1.0.${{ github.run_number }}
+
+      - name: Zip module
+        run: cd src/PlaytimeTracker && zip -r ../../module.zip game
+
+      - name: Pack Shared
+        run: dotnet pack src/PlaytimeTracker.Shared/PlaytimeTracker.Shared.csproj -c Release --no-restore -p:PackageVersion=1.0.${{ github.run_number }} -o ./nupkgs
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          prerelease: ${{ github.ref_name == 'dev' }}
+          files: |
+            module.zip
+            nupkgs/*.nupkg
+
+      - name: Push to NuGet
+        if: github.ref_name == 'master'
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>PlaytimeTracker.Shared</AssemblyName>
+    <RootNamespace>InsanityGaming.ModSharp.PlaytimeTracker.Shared</RootNamespace>
+    <IsSharedPackage>true</IsSharedPackage>
+
+    <!-- NuGet packaging -->
+    <IsPackable>true</IsPackable>
+    <PackageId>InsanityGaming.ModSharp.PlaytimeTracker.Shared</PackageId>
+    <Authors>InsanityGaming</Authors>
+    <Description>Shared interface and models for the PlaytimeTracker ModSharp module. Reference this package to query playtime from other modules.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Insanity-Gaming/ms-playtimetracker</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Insanity-Gaming/ms-playtimetracker</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModSharp.Sharp.Shared" Version="2.1.123" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

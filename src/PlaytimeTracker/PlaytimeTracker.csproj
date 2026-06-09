@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>PlaytimeTracker</AssemblyName>
+    <RootNamespace>InsanityGaming.PlaytimeTracker</RootNamespace>
+    <RepositoryUrl>https://github.com/Insanity-Gaming/ms-playtimetracker</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModSharp.Sharp.Extensions.GameEventManager" Version="2.1.120" ExcludeAssets="runtime" />
+    <PackageReference Include="ModSharp.Sharp.Shared" Version="2.1.123" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlaytimeTracker.Shared\PlaytimeTracker.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Data\Schema.sql" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <WarningsNotAsErrors>CS0618</WarningsNotAsErrors>
+  </PropertyGroup>
+
+</Project>
