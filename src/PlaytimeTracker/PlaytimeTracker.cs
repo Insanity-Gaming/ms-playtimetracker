@@ -1,5 +1,6 @@
 using InsanityGaming.ModSharp.PlaytimeTracker.Shared;
 using InsanityGaming.PlaytimeTracker.Commands;
+using InsanityGaming.PlaytimeTracker.Config;
 using InsanityGaming.PlaytimeTracker.Data;
 using InsanityGaming.PlaytimeTracker.Interfaces;
 using InsanityGaming.PlaytimeTracker.Services;
@@ -14,6 +15,7 @@ using Sharp.Shared.Abstractions;
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace InsanityGaming.PlaytimeTracker;
 
@@ -34,19 +36,53 @@ public sealed class PlaytimeTracker : IModSharpModule
         IConfiguration coreConfiguration,
         bool hotReload)
     {
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile(Path.Combine(dllPath, "config.json"), false, false)
-            .Build();
+        var configPath  = Path.Combine(dllPath, "config.json");
+        var jsonOptions = new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var loggerFactory = sharedSystem.GetLoggerFactory();
+        var startupLogger = loggerFactory.CreateLogger<PlaytimeTracker>();
+
+        PlaytimeTrackerConfig config;
+
+        if (!File.Exists(configPath))
+        {
+            config = new PlaytimeTrackerConfig();
+            try
+            {
+                File.WriteAllText(configPath, JsonSerializer.Serialize(config, jsonOptions));
+            }
+            catch (Exception ex)
+            {
+                startupLogger.LogWarning(ex,
+                    "PlaytimeTracker: could not write default config to '{Path}'; running with in-memory defaults.", configPath);
+            }
+        }
+        else
+        {
+            try
+            {
+                config = JsonSerializer.Deserialize<PlaytimeTrackerConfig>(File.ReadAllText(configPath), jsonOptions)
+                         ?? new PlaytimeTrackerConfig();
+            }
+            catch (Exception ex)
+            {
+                startupLogger.LogWarning(ex,
+                    "PlaytimeTracker: failed to parse '{Path}'; running with defaults. Fix the file and reload.", configPath);
+                config = new PlaytimeTrackerConfig();
+            }
+        }
 
         var services = new ServiceCollection();
 
         _bridge  = new InterfaceBridge(dllPath, sharpPath, version, sharedSystem);
-        _logger  = sharedSystem.GetLoggerFactory().CreateLogger<PlaytimeTracker>();
+        _logger  = loggerFactory.CreateLogger<PlaytimeTracker>();
 
         services.AddSingleton(_bridge);
         services.AddSingleton(sharedSystem);
-        services.AddSingleton<IConfiguration>(configuration);
-        services.AddSingleton(sharedSystem.GetLoggerFactory());
+        services.AddSingleton(config);
+        services.AddSingleton(config.Database);
+        services.AddSingleton(config.Tracking);
+        services.AddSingleton(config.Server);
+        services.AddSingleton(loggerFactory);
         services.TryAdd(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
 
         services.AddCommandManager(sharedSystem);

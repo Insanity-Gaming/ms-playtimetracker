@@ -1,7 +1,7 @@
 using InsanityGaming.ModSharp.PlaytimeTracker.Shared;
+using InsanityGaming.PlaytimeTracker.Config;
 using InsanityGaming.PlaytimeTracker.Data;
 using InsanityGaming.PlaytimeTracker.Interfaces;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Sharp.Shared.Enums;
 using Sharp.Shared.GameEvents;
@@ -20,15 +20,15 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
     private readonly InterfaceBridge _bridge;
     private readonly PlaytimeRepository _repo;
     private readonly ServerRegistry _registry;
-    private readonly IConfiguration _config;
+    private readonly TrackingConfig _config;
     private readonly ILogger<SessionManager> _logger;
 
     private readonly Dictionary<PlayerSlot, LiveSession> _activeSessions = new();
     private readonly Dictionary<ulong, GraceSession> _graceCache = new();
     private Timer? _flushTimer;
 
-    private int FlushIntervalSeconds  => int.TryParse(_config["tracking:flushIntervalSeconds"],  out var v) ? v : 60;
-    private int ReconnectGraceSeconds => int.TryParse(_config["tracking:reconnectGraceSeconds"], out var v) ? v : 600;
+    private int FlushIntervalSeconds  => _config.FlushIntervalSeconds;
+    private int ReconnectGraceSeconds => _config.ReconnectGraceSeconds;
 
     // IClientListener
     int IClientListener.ListenerVersion  => IClientListener.ApiVersion;
@@ -46,7 +46,7 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
         InterfaceBridge bridge,
         PlaytimeRepository repo,
         ServerRegistry registry,
-        IConfiguration config,
+        TrackingConfig config,
         ILogger<SessionManager> logger)
     {
         _bridge   = bridge;
@@ -128,12 +128,23 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
 
     // ── IClientListener ───────────────────────────────────────────────────
 
-    public void OnClientPutInServer(IGameClient client)
+    public void OnClientPutInServer(IGameClient client) { }
+
+    public void OnClientPostAdminCheck(IGameClient client)
     {
-        if (client.IsFakeClient || !client.IsAuthenticated)
+        if (client.IsFakeClient)
             return;
 
-        _ = OnPlayerConnectAsync(client);
+        var slot      = client.Slot;
+        var steamId64 = client.SteamId.AsPrimitive();
+
+        _bridge.ModSharp.PushTimer(() =>
+        {
+            var current = _bridge.ClientManager.GetGameClient(slot);
+            if (current is null || current.SteamId.AsPrimitive() != steamId64)
+                return;
+            _ = OnPlayerConnectAsync(current);
+        }, 2.0);
     }
 
     public void OnClientDisconnecting(IGameClient client, NetworkDisconnectionReason reason)

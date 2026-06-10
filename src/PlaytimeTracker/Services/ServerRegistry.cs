@@ -1,6 +1,6 @@
 using InsanityGaming.ModSharp.PlaytimeTracker.Shared;
+using InsanityGaming.PlaytimeTracker.Config;
 using InsanityGaming.PlaytimeTracker.Data;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Sharp.Shared.Managers;
 using Sharp.Shared.Objects;
@@ -13,7 +13,7 @@ public sealed class ServerRegistry
 {
     private readonly InterfaceBridge _bridge;
     private readonly PlaytimeRepository _repo;
-    private readonly IConfiguration _config;
+    private readonly ServerConfig _config;
     private readonly ILogger<ServerRegistry> _logger;
 
     public int ServerId { get; private set; }
@@ -22,7 +22,7 @@ public sealed class ServerRegistry
     public ServerRegistry(
         InterfaceBridge bridge,
         PlaytimeRepository repo,
-        IConfiguration config,
+        ServerConfig config,
         ILogger<ServerRegistry> logger)
     {
         _bridge = bridge;
@@ -51,9 +51,8 @@ public sealed class ServerRegistry
 
     private string ResolveIp()
     {
-        var overrideVal = _config["server:ipOverride"];
-        if (!string.IsNullOrWhiteSpace(overrideVal))
-            return overrideVal;
+        if (!string.IsNullOrWhiteSpace(_config.IpOverride))
+            return _config.IpOverride;
 
         try
         {
@@ -71,9 +70,8 @@ public sealed class ServerRegistry
 
     private ushort ResolvePort()
     {
-        var overrideVal = _config["server:portOverride"];
-        if (!string.IsNullOrWhiteSpace(overrideVal) && ushort.TryParse(overrideVal, out var overridePort))
-            return overridePort;
+        if (_config.PortOverride is > 0 and <= 65535)
+            return (ushort)_config.PortOverride.Value;
 
         try
         {
@@ -95,9 +93,8 @@ public sealed class ServerRegistry
 
     private string ResolveHostname()
     {
-        var overrideVal = _config["server:hostnameOverride"];
-        if (!string.IsNullOrWhiteSpace(overrideVal))
-            return overrideVal;
+        if (!string.IsNullOrWhiteSpace(_config.HostnameOverride))
+            return _config.HostnameOverride;
 
         try
         {

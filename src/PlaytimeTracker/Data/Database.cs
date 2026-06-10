@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+using InsanityGaming.PlaytimeTracker.Config;
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
 using System;
@@ -13,16 +13,15 @@ public sealed class Database
     private readonly string _connectionString;
     private readonly ILogger<Database> _logger;
 
-    public Database(IConfiguration config, ILogger<Database> logger)
+    public Database(DatabaseConfig config, ILogger<Database> logger)
     {
-        var db = config.GetSection("database");
         var builder = new MySqlConnectionStringBuilder
         {
-            Server                  = db["host"] ?? "127.0.0.1",
-            Port                    = uint.Parse(db["port"] ?? "3306"),
-            Database                = db["name"] ?? "playtime",
-            UserID                  = db["user"] ?? "user",
-            Password                = db["password"] ?? "pass",
+            Server                  = config.Host,
+            Port                    = (uint)config.Port,
+            Database                = config.Name,
+            UserID                  = config.User,
+            Password                = config.Password,
             AllowPublicKeyRetrieval = true,
         };
         _connectionString = builder.ConnectionString;
