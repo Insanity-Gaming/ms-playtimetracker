@@ -116,9 +116,6 @@ public sealed class PlaytimeTracker : IModSharpModule
 
         _bridge.CommandManager = _serviceProvider.GetRequiredService<ICommandManager>();
 
-        _bridge.SharpModuleManager.RegisterSharpModuleInterface<IPlaytimeTracker>(
-            this, IPlaytimeTracker.Identity, tracker);
-
         foreach (IModule service in _serviceProvider.GetServices<IModule>())
         {
             if (!service.Init())
@@ -135,7 +132,12 @@ public sealed class PlaytimeTracker : IModSharpModule
             service.Shutdown();
     }
 
-    public void PostInit() { }
+    public void PostInit()
+    {
+        var tracker = _serviceProvider.GetRequiredService<PlaytimeTrackerService>();
+        _bridge.SharpModuleManager.RegisterSharpModuleInterface<IPlaytimeTracker>(
+            this, IPlaytimeTracker.Identity, tracker);
+    }
     public void OnAllModulesLoaded() { }
     public void OnLibraryConnected(string name) { }
     public void OnLibraryDisconnect(string name) { }
