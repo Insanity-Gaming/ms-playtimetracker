@@ -156,14 +156,34 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
 
     public void FireGameEvent(IGameEvent @event)
     {
-        if (@event is not IEventPlayerTeam e)
+        if (!@event.Name.Equals("player_team", StringComparison.Ordinal))
             return;
 
-        var client = _bridge.ClientManager.GetGameClient(e.UserId);
+        IGameClient? client;
+        CStrikeTeam  newTeam;
+
+        if (@event is IEventPlayerTeam e)
+        {
+            if (e.Disconnect)
+                return;
+
+            client  = _bridge.ClientManager.GetGameClient(e.UserId);
+            newTeam = e.NewTeam;
+        }
+        else
+        {
+            if (@event.GetBool("disconnect"))
+                return;
+
+            var ctrl = @event.GetPlayerController("userid");
+            client  = ctrl?.GetGameClient();
+            newTeam = @event.Get<CStrikeTeam>("team");
+        }
+
         if (client is null)
             return;
 
-        OnTeamChange(client, e.NewTeam);
+        OnTeamChange(client, newTeam);
     }
 
     // ── Player lifecycle ──────────────────────────────────────────────────
@@ -251,6 +271,8 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
             sessionDbId = 0;
         }
 
+        var currentTeam = client.GetPlayerController()?.Team ?? CStrikeTeam.UnAssigned;
+
         var session = new PlaytimeSession
         {
             SteamId      = client.SteamId,
@@ -259,7 +281,7 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
             ServerId     = serverId,
             StartedUtc   = now,
             LastSeenUtc  = now,
-            CurrentTeam  = CStrikeTeam.UnAssigned,
+            CurrentTeam  = currentTeam,
             Elapsed      = TimeSpan.Zero,
             CtPlaytime   = TimeSpan.Zero,
             TePlaytime   = TimeSpan.Zero,
@@ -448,9 +470,9 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
                 session.TePlaytime += delta;
                 break;
             case CStrikeTeam.Spectator:
+            case CStrikeTeam.UnAssigned:
                 session.SpecPlaytime += delta;
                 break;
-            // UnAssigned time counts toward Elapsed but not any team bucket.
         }
     }
 
