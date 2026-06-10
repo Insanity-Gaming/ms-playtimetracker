@@ -31,13 +31,8 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore -p:Version=1.0.${{ github.run_number }} -p:AssemblyVersion=1.0.${{ github.run_number }} -p:FileVersion=1.0.${{ github.run_number }}
 
-      - name: Publish
-        run: |
-          OUT=src/PlaytimeTracker/game/sharp/modules/PlaytimeTracker
-          rm -rf src/PlaytimeTracker/game
-          mkdir -p "$OUT"
-          dotnet publish src/PlaytimeTracker/PlaytimeTracker.csproj -c Release --no-restore -p:Version=1.0.${{ github.run_number }} -p:AssemblyVersion=1.0.${{ github.run_number }} -p:FileVersion=1.0.${{ github.run_number }} -o "$OUT"
-          cp src/PlaytimeTracker/config.json "$OUT/config.example.json"
+      - name: Stage config example
+        run: cp src/PlaytimeTracker/config.json src/PlaytimeTracker/game/sharp/modules/PlaytimeTracker/config.example.json
 
       - name: Zip module
         run: cd src/PlaytimeTracker && zip -r ../../module.zip game
