@@ -4,7 +4,6 @@ using InsanityGaming.PlaytimeTracker.Data;
 using InsanityGaming.PlaytimeTracker.Interfaces;
 using Microsoft.Extensions.Logging;
 using Sharp.Shared.Enums;
-using Sharp.Shared.GameEvents;
 using Sharp.Shared.Listeners;
 using Sharp.Shared.Objects;
 using Sharp.Shared.Units;
@@ -15,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace InsanityGaming.PlaytimeTracker.Services;
 
-public sealed class SessionManager : IModule, IClientListener, IEventListener
+public sealed class SessionManager : IModule, IClientListener
 {
     private readonly InterfaceBridge _bridge;
     private readonly PlaytimeRepository _repo;
@@ -33,10 +32,6 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
     // IClientListener
     int IClientListener.ListenerVersion  => IClientListener.ApiVersion;
     int IClientListener.ListenerPriority => 0;
-
-    // IEventListener
-    int IEventListener.ListenerVersion  => IEventListener.ApiVersion;
-    int IEventListener.ListenerPriority => 0;
 
     public event Action<SessionEventArgs>?        SessionStarted;
     public event Action<SessionEventArgs>?        SessionEnded;
@@ -61,8 +56,6 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
     public bool Init()
     {
         _bridge.ClientManager.InstallClientListener(this);
-        _bridge.EventManager.InstallEventListener(this);
-        _bridge.EventManager.HookEvent("player_team");
 
         var interval = TimeSpan.FromSeconds(FlushIntervalSeconds);
         _flushTimer = new Timer(OnFlushTick, null, interval, interval);
@@ -78,7 +71,6 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
         _flushTimer = null;
 
         _bridge.ClientManager.RemoveClientListener(this);
-        _bridge.EventManager.RemoveEventListener(this);
 
         var now = DateTimeOffset.UtcNow;
 
@@ -150,40 +142,6 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
     public void OnClientDisconnecting(IGameClient client, NetworkDisconnectionReason reason)
     {
         OnPlayerDisconnect(client, reason.ToString());
-    }
-
-    // ── IEventListener ────────────────────────────────────────────────────
-
-    public void FireGameEvent(IGameEvent @event)
-    {
-        if (!@event.Name.Equals("player_team", StringComparison.Ordinal))
-            return;
-
-        IGameClient? client;
-        CStrikeTeam  newTeam;
-
-        if (@event is IEventPlayerTeam e)
-        {
-            if (e.Disconnect)
-                return;
-
-            client  = _bridge.ClientManager.GetGameClient(e.UserId);
-            newTeam = e.NewTeam;
-        }
-        else
-        {
-            if (@event.GetBool("disconnect"))
-                return;
-
-            var ctrl = @event.GetPlayerController("userid");
-            client  = ctrl?.GetGameClient();
-            newTeam = @event.Get<CStrikeTeam>("team");
-        }
-
-        if (client is null)
-            return;
-
-        OnTeamChange(client, newTeam);
     }
 
     // ── Player lifecycle ──────────────────────────────────────────────────
@@ -342,34 +300,25 @@ public sealed class SessionManager : IModule, IClientListener, IEventListener
             live.Public.Name, live.Public.SteamId.AsPrimitive(), reason, ReconnectGraceSeconds);
     }
 
-    private void OnTeamChange(IGameClient client, CStrikeTeam newTeam)
-    {
-        var slot = client.Slot;
-        if (!_activeSessions.TryGetValue(slot, out var live))
-            return;
-
-        var now          = DateTimeOffset.UtcNow;
-        var segmentDelta = now - live.TeamSegmentStart;
-
-        AccumulateTeamDelta(live.Public, live.Public.CurrentTeam, segmentDelta);
-        live.Public.Elapsed    += segmentDelta;
-        live.TeamSegmentStart   = now;
-        live.Public.CurrentTeam = newTeam;
-        live.Public.LastSeenUtc = now;
-    }
-
     // ── Flush timer ───────────────────────────────────────────────────────
 
     private void OnFlushTick(object? state)
     {
         var now = DateTimeOffset.UtcNow;
 
-        foreach (var (_, live) in _activeSessions)
+        foreach (var (slot, live) in _activeSessions)
         {
             try
             {
                 var delta = FlushLiveSession(live, now);
                 _ = PersistFlushAsync(live, delta);
+
+                // Sync current team from the controller so the next flush interval
+                // accumulates to the correct bucket even if player_team was unreliable.
+                var actualTeam = _bridge.ClientManager.GetGameClient(slot)?.GetPlayerController()?.Team;
+                if (actualTeam.HasValue)
+                    live.Public.CurrentTeam = actualTeam.Value;
+
                 PlaytimeUpdated?.Invoke(new PlaytimeUpdatedEventArgs
                 {
                     Session = live.Public,
