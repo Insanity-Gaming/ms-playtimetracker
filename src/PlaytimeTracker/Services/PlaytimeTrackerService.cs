@@ -102,6 +102,9 @@ public sealed class PlaytimeTrackerService : IPlaytimeTracker
     public Task<IReadOnlyList<PlaytimeEntry>> GetTopPlaytimeOnServerAsync(int serverId, int count, CancellationToken ct = default)
         => _repo.GetTopByServerAsync(serverId, count, ct);
 
+    public Task<IReadOnlyList<PlaytimeEntry>> GetTopPlaytimeOnServerByTeamAsync(int serverId, CStrikeTeam team, int count, CancellationToken ct = default)
+        => _repo.GetTopByServerByTeamAsync(serverId, team, count, ct);
+
     public Task<IReadOnlyList<PlaytimeEntry>> GetTopPlaytimeByTeamAsync(CStrikeTeam team, int count, CancellationToken ct = default)
         => _repo.GetTopByTeamAsync(team, count, ct);
 

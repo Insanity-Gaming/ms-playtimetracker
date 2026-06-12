@@ -100,42 +100,63 @@ internal sealed class PlaytimeCommands : BaseCommand
         ctrl.Print(ch, $"{Prefix} Session: {ChatColor.Green}{FormatTime(session.Elapsed)}{ChatColor.White} | CT: {ChatColor.Blue}{FormatTime(session.CtPlaytime)}{ChatColor.White} | T: {ChatColor.Yellow}{FormatTime(session.TePlaytime)}{ChatColor.White} | Spec: {ChatColor.Grey}{FormatTime(session.SpecPlaytime)}");
     }
 
-    // !ptop [server|ct|t|spec]
+    // !ptop [server|global] [ct|t|spec]
     private void OnTop(IGameClient? client, StringCommand command)
     {
         if (client is null) return;
         var ctrl = client.GetPlayerController();
         if (ctrl is null) return;
 
-        var ch  = command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console;
-        var arg = command.ArgCount > 1 ? command.GetArg(1).ToLower() : string.Empty;
+        var ch   = command.ChatTrigger ? HudPrintChannel.Chat : HudPrintChannel.Console;
+        var arg1 = command.ArgCount > 1 ? command.GetArg(1).ToLower() : string.Empty;
+        var arg2 = command.ArgCount > 2 ? command.GetArg(2).ToLower() : string.Empty;
+
+        bool globalScope;
+        string teamArg;
+
+        if (arg1 is "server" or "global")
+        {
+            globalScope = arg1 == "global";
+            teamArg     = arg2;
+        }
+        else
+        {
+            globalScope = false;
+            teamArg     = arg1;
+        }
 
         _ = Task.Run(async () =>
         {
             IReadOnlyList<PlaytimeEntry> entries;
             string label;
 
-            switch (arg)
+            var serverId = _tracker.CurrentServerId;
+
+            switch (teamArg)
             {
-                case "server":
-                    entries = await _tracker.GetTopPlaytimeOnServerAsync(_tracker.CurrentServerId, 10);
-                    label = "Server";
-                    break;
                 case "ct":
-                    entries = await _tracker.GetTopPlaytimeByTeamAsync(CStrikeTeam.CT, 10);
-                    label = "CT";
+                    entries = globalScope
+                        ? await _tracker.GetTopPlaytimeByTeamAsync(CStrikeTeam.CT, 10)
+                        : await _tracker.GetTopPlaytimeOnServerByTeamAsync(serverId, CStrikeTeam.CT, 10);
+                    label = globalScope ? "Global CT" : "Server CT";
                     break;
                 case "t":
-                    entries = await _tracker.GetTopPlaytimeByTeamAsync(CStrikeTeam.TE, 10);
-                    label = "T";
+                    entries = globalScope
+                        ? await _tracker.GetTopPlaytimeByTeamAsync(CStrikeTeam.TE, 10)
+                        : await _tracker.GetTopPlaytimeOnServerByTeamAsync(serverId, CStrikeTeam.TE, 10);
+                    label = globalScope ? "Global T" : "Server T";
                     break;
                 case "spec":
-                    entries = await _tracker.GetTopPlaytimeByTeamAsync(CStrikeTeam.Spectator, 10);
-                    label = "Spec";
+                    entries = globalScope
+                        ? await _tracker.GetTopPlaytimeByTeamAsync(CStrikeTeam.Spectator, 10)
+                        : await _tracker.GetTopPlaytimeOnServerByTeamAsync(serverId, CStrikeTeam.Spectator, 10);
+                    label = globalScope ? "Global Spec" : "Server Spec";
                     break;
                 default:
-                    entries = await _tracker.GetTopPlaytimeAsync(10);
-                    label = "Global";
+                    entries = globalScope
+                        ? await _tracker.GetTopPlaytimeAsync(10)
+                        : await _tracker.GetTopPlaytimeOnServerAsync(serverId, 10);
+                    label = globalScope ? "Global" : "Server";
                     break;
             }
 

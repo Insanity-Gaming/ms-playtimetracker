@@ -209,6 +209,35 @@ public sealed class PlaytimeRepository
         return result;
     }
 
+    public async Task<IReadOnlyList<PlaytimeEntry>> GetTopByServerByTeamAsync(int serverId, CStrikeTeam team, int count, CancellationToken ct = default)
+    {
+        var column = TeamColumn(team);
+        var sql = $"""
+            SELECT p.`steamid64`, pl.`name`, p.`{column}` AS total_seconds
+            FROM `pt_playtime` p
+            JOIN `pt_players` pl ON pl.`steamid64` = p.`steamid64`
+            WHERE p.`server_id` = @serverId
+            ORDER BY p.`{column}` DESC
+            LIMIT @count
+            """;
+
+        await using var conn = await _db.OpenConnectionAsync();
+        var rows = await conn.QueryAsync<(ulong steamid64, string name, long total_seconds)>(
+            new CommandDefinition(sql, new { serverId, count }, cancellationToken: ct));
+
+        var result = new List<PlaytimeEntry>();
+        foreach (var row in rows)
+            result.Add(new PlaytimeEntry
+            {
+                SteamId  = (SteamID)row.steamid64,
+                Name     = row.name,
+                Playtime = TimeSpan.FromSeconds(row.total_seconds),
+                ServerId = serverId,
+            });
+
+        return result;
+    }
+
     public async Task<IReadOnlyList<PlaytimeEntry>> GetTopByTeamAsync(CStrikeTeam team, int count, CancellationToken ct = default)
     {
         var column = TeamColumn(team);

@@ -30,6 +30,7 @@ public interface IPlaytimeTracker
     Task<TimeSpan> GetTeamPlaytimeAsync(SteamID steamId, CStrikeTeam team, CancellationToken ct = default);
     Task<IReadOnlyList<PlaytimeEntry>> GetTopPlaytimeAsync(int count, CancellationToken ct = default);
     Task<IReadOnlyList<PlaytimeEntry>> GetTopPlaytimeOnServerAsync(int serverId, int count, CancellationToken ct = default);
+    Task<IReadOnlyList<PlaytimeEntry>> GetTopPlaytimeOnServerByTeamAsync(int serverId, CStrikeTeam team, int count, CancellationToken ct = default);
     Task<IReadOnlyList<PlaytimeEntry>> GetTopPlaytimeByTeamAsync(CStrikeTeam team, int count, CancellationToken ct = default);
 
     // ── Server registry ─────────────────────────────────────────────────
