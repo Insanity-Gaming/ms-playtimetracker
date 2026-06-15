@@ -160,15 +160,18 @@ internal sealed class PlaytimeCommands : BaseCommand
                     break;
             }
 
-            ctrl.Print(ch, $"{Prefix} {ChatColor.Gold}Top 10 {label} Playtime:");
-            for (int i = 0; i < entries.Count; i++)
+            Bridge.ModSharp.InvokeFrameAction(() =>
             {
-                var e = entries[i];
-                ctrl.Print(ch, $" {ChatColor.Gold}{i + 1}. {ChatColor.White}{e.Name} {ChatColor.Grey}- {ChatColor.Green}{FormatTime(e.Playtime)}");
-            }
+                ctrl.Print(ch, $"{Prefix} {ChatColor.Gold}Top 10 {label} Playtime:");
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    var e = entries[i];
+                    ctrl.Print(ch, $" {ChatColor.Gold}{i + 1}. {ChatColor.White}{e.Name} {ChatColor.Grey}- {ChatColor.Green}{FormatTime(e.Playtime)}");
+                }
 
-            if (entries.Count == 0)
-                ctrl.Print(ch, $" {ChatColor.Grey}No data yet.");
+                if (entries.Count == 0)
+                    ctrl.Print(ch, $" {ChatColor.Grey}No data yet.");
+            });
         });
     }
 

@@ -28,7 +28,7 @@ internal abstract class BaseCommand : IModule
             Task.Run(async () =>
             {
                 await Task.Delay(500);
-                RegisterCommand(command, callback, clientOnly);
+                Bridge.ModSharp.InvokeFrameAction(() => RegisterCommand(command, callback, clientOnly));
             });
             return;
         }
